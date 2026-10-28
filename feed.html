@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialConnect | Feed</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            color: #222;
+        }
+
+        header {
+            background: #1877f2;
+            color: white;
+            padding: 15px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 600px;
+            margin: 25px auto;
+            padding: 0 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #00000010;
+        }
+
+        textarea {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 90px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+        }
+
+        button {
+            background: #1877f2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .post-content {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .comment {
+            background: #f0f2f5;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .error {
+            color: #b00020;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>SocialConnect</h2>
+        <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    </header>
+
+    <main>
+        <div class="card">
+            <h3>Welcome, {{ request.user.username }}!</h3>
+            <form method="POST" action="{% url 'feed' %}">
+                {% csrf_token %}
+                <textarea name="content"
+                          maxlength="5000"
+                          placeholder="What's on your mind?"
+                          required></textarea>
+                <button type="submit">Publish Post</button>
+            </form>
+        </div>
+
+        {% for message in messages %}
+            <p class="{% if message.tags == 'error' %}error{% endif %}">
+                {{ message }}
+            </p>
+        {% endfor %}
+
+        <h2>Latest Posts</h2>
+
+        {% for post in posts %}
+            <div class="card">
+                <strong>@{{ post.author.username }}</strong>
+                <small>{{ post.created_at|date:"M d, Y H:i" }}</small>
+
+                <p class="post-content">{{ post.content }}</p>
+
+                <form method="POST"
+                      action="{% url 'toggle_like' post.id %}">
+                    {% csrf_token %}
+                    <button type="submit">
+                        {% if request.user in post.likes.all %}
+                            Unlike
+                        {% else %}
+                            Like
+                        {% endif %}
+                        ({{ post.likes.count }})
+                    </button>
+                </form>
+
+                <h4>Comments ({{ post.comments.count }})</h4>
+
+                {% for comment in post.comments.all %}
+                    <div class="comment">
+                        <strong>@{{ comment.author.username }}</strong>
+                        <p>{{ comment.content }}</p>
+                    </div>
+                {% empty %}
+                    <p>No comments yet.</p>
+                {% endfor %}
+
+                <form method="POST"
+                      action="{% url 'add_comment' post.id %}">
+                    {% csrf_token %}
+                    <textarea name="content"
+                              maxlength="2000"
+                              placeholder="Write a comment..."
+                              required></textarea>
+                    <button type="submit">Comment</button>
+                </form>
+            </div>
+        {% empty %}
+            <div class="card">
+                <p>No posts yet. Be the first to share something!</p>
+            </div>
+        {% endfor %}
+    </main>
+</body>
+</html>
